@@ -1,68 +1,147 @@
-# Mongoose-Note Part2
+# Mongoose-Note Part 1
 
-# 範例資料
+參考資料：
 
-經由前面新增的資料，資料庫內共有 3 筆資料，現在就來針對這 3 筆資料做查詢吧。
+- [Mongoose Document](https://mongoosejs.com/docs/api.html)
+- [Web Dev Simplified](https://www.youtube.com/watch?v=DZBGEVgL2eE)
 
-![Image](https://i.imgur.com/FbNuDDK.png)
+# MongoDB 前置作業(本地端)
 
-# 查詢資料
+本篇主要是介紹 Mongoose 的語法，所以在安裝的部分並不會太詳細的介紹。
 
-因為語法的使用方式非常多樣，並不會全部介紹到，有興趣的可以看 [MongoDB Cheat Sheet](https://gist.github.com/codeSTACKr/53fd03c7f75d40d07797b8e4e47d78ec#chaining/)。
+如果要使用本地端進行測試的話，必須先安裝以下兩個由官方提供的應用程式，分別是：
 
-使用 **find** 即可將資料庫內的資料全部查詢出來。
+- [MongoDB Community Server](https://www.mongodb.com/try/download/community?tck=docs_server)
+- [MongoDB Shell](https://www.mongodb.com/try/download/shell?jmp=docs)
+- [MongoDB Compass](https://www.mongodb.com/products/compass) (建議一同安裝)
 
-**_sevrer.js_**
+另外也建議大家安裝 MongoDB Compass，它是由官網提供的圖形化桌面應用程式，我們可以直接在該應用程式看到所有儲存在資料庫的資料，並且可以針對資料進行新增修改刪除，在測試的過程中會比較方便。
+
+![Image](https://i.imgur.com/xg8KhgB.png)
+
+以上都安裝完以後，在 Terminal 輸入 mongosh，如果有成功連線代表安裝成功。
+
+![Image](https://i.imgur.com/oz7dfby.png)
+
+# MongoDB 前置作業(MongoDB Cloud)
+
+而如果是使用 MongoDB Cloud(MongoDB Atlas)來進行開發的話，在建立完 Database 後，可以在後台的 Atlas 介面看到我們的 Cluster0，點擊 Connect。
+
+![Image](https://i.imgur.com/2OVVKvZ.png)
+
+之後點擊 Connect your application
+
+![Image](https://i.imgur.com/VsRet1o.png)
+
+我們只要先把 uri 那段複製起來就好，等等在初始化的部分需要使用到該 uri，記得在<password>的部分要改成自己的 MongoDB 密碼，密碼也要注意不要外洩，所以 uri 建議是儲存在.env。
+
+![Image](https://i.imgur.com/rAKc2EJ.png)
+
+# 初始化
+
+在開發的過程中也強烈建議大家使用 nodemon 來監聽自己的 node js 檔案，當檔案有異動時，nodemon 會幫你 restart server，才不用每次做一點更動之後就要重新執行 node js 的檔案。
+
+這邊先執行以下指令來安裝 mongoose：
+
+```javascript
+npm install mongoose
+```
+
+將套件安裝成功後，就來進行基本的連線設定吧，先建立一支新的檔案，名為 server.js，在 connect 的時候把 uri 填上，port 後面的斜線要填上你要建立的資料庫名稱，當我們對資料庫進行操作時才會建立該資料庫。
+
+**_sever.js_**
 
 ```javascript
 const mongoose = require("mongoose");
-const User = require("./User");
+
+//如果是使用cloud的話 第一個參數就要放cloud給予的uri位置，在<password>的部分要改成自己的MongoDB密碼，才能成功連線。
+
+//本地端預設： mongodb://127.0.0.1:27017/你要建立的資料庫名稱
+
+//cloud：mongodb+srv://Wei:<password>@cluster0.adryn.mongodb.net/?retryWrites=true&w=majority
 
 mongoose.connect("mongodb://127.0.0.1:27017/testdb", () => {
   console.log("connected");
 });
-
-const findData = async () => {
-  try {
-    const user = await User.find();
-    console.log(user);
-  } catch (error) {
-    console.log(error.message);
-  }
-};
-
-findData();
 ```
 
-![Image](https://i.imgur.com/3K2QSmA.png)
+之後打開 Terminal，輸入以下指令：
 
-如要針對特定條件進行搜尋的話，可以使用 MongoDB 本身提供 Operators 查詢語法，如果有想進一步了解的話，[可以看官方文檔](https://www.mongodb.com/docs/manual/reference/operator/query/)。
+```
+nodemon ./server.js
+```
 
-這邊提幾個常用的
+要是連線成功的話就會在 Terminal 看到 connected。
 
-- $gt (greater than) : 大於
-- $gte (greater than equal) : 大於等於
-- $lt (less than) : 小於
-- $lte (less than equal) : 小於等於
-- $in (in) : 指定範圍匹配的值
-- $nin (not in) : 指定範圍不匹配的值
+![Image](https://i.imgur.com/tZxDkri.png)
 
-所以如果想查詢 **name 為 Wei 與 name 為 Alex 且 age 大於等於 18 的**則可以在 find 裡面傳入以下物件參數，
+# MongoDB Compass (建議安裝)
+
+本文章是使用本地端進行測試，先打開 MongoDB Compass 在一開始的 New Connection 中輸入 `mongodb://localhost:27017/` 然後按下 Connect。
+
+![Image](https://i.imgur.com/kiWy2P2.png)
+
+成功利用 Compass 連線至本地端的 MongoDB 後，可以在左邊的 Databases 看到預設有三個資料庫，但目前還沒有對資料庫進行任何的操作，所以不會看到我們建立的資料庫(testdb)。
+
+![Image](https://i.imgur.com/r6ze9bc.png)
+
+# 建立 Collections 定義 Schema 並新增資料到資料庫
+
+我們現在可以透過 Mongoose 來建立資料庫的 Collection，如果你有使用過其他資料庫例如 Mysql，Collection 就像是 Table，而 Table 在建立時需要定義裡面的資料欄位名稱以及資料型態(Schema Type)，Collection 也是一樣。
+
+要知道 Mongoose 支援哪些 Schema Type 的話可以看[官方的文檔](https://mongoosejs.com/docs/schematypes.html)，這裡就不多介紹了。
+
+現在就來建立我們的 Collection 並定義 Schema 吧
+
+我們再建立一支檔案名為 User.js，在該檔案裡面引入 mongoose 套件，並定義 Collection 名稱與欄位名稱。
+
+**_User.js_**
+
+```javascript
+const mongoose = require("mongoose");
+
+//定義欄位名稱與欄位型態
+const userSchema = new mongoose.Schema({
+  name: String,
+  email: String,
+  age: Number,
+});
+
+//定義Collection的名稱
+module.exports = mongoose.model("User", userSchema);
+```
+
+定義好 Collection 名稱和 欄位名稱後，我們直接在 server.js 檔案中引入做使用，要注意的是 mongoose 提供的新增修改刪除都必須使用 async / await 去做處理，在建立新資料的時候填入剛剛定義的欄位名稱(key)還有欄位的值(value)。
+
 **_server.js_**
 
 ```javascript
 const mongoose = require("mongoose");
 const User = require("./User");
 
+//如果是使用cloud的話 第一個參數就要放cloud給予的uri位置，在<password>的部分要改成自己的MongoDB密碼，才能成功連線。
+
+//本地端預設： mongodb://127.0.0.1:27017/你自己的資料庫名稱
+
+//cloud：mongodb+srv://Wei:<password>@cluster0.adryn.mongodb.net/?retryWrites=true&w=majority
+
 mongoose.connect("mongodb://127.0.0.1:27017/testdb", () => {
   console.log("connected");
 });
 
-const findData = async () => {
+const createNewData = async () => {
   try {
-    const user = await User.find({
-      name: { $in: ["Wei", "Alex"] },
-      age: { $gte: 18 },
+    // 第一種建立資料的方法
+    // const user = new User({ name: "Wei", age: 24 });
+    // await user.save();
+
+    //----------------------------------------
+
+    //第二種建立資料的方法
+    const user = await User.create({
+      name: "Wei",
+      age: 24,
+      email: "test@gmail.com",
     });
     console.log(user);
   } catch (error) {
@@ -70,12 +149,16 @@ const findData = async () => {
   }
 };
 
-findData();
+createNewData();
 ```
 
-![Image](https://i.imgur.com/u22I4JZ.png)
+將上面的程式碼貼到 server.js 後儲存，因為我們是使用 nodemon 的關係，在按下儲存的當下 nodemon 就會幫我們重啟 server，如果沒有報出任何錯誤並且有在 Terminal 看到我們新增的資料，就代表資料建立成功了。
 
-如果 Operators 用不習慣的話，也可以選擇使用類似 Mysql 的 select where，但必須先 where 後才能執行 select。
+在 MongoDB Compass 中按下左邊的重新整理按鈕，就會看到我們的資料庫(testdb)和 collection 了(users)，而在 collection 裡面可以看到剛剛新增的資料。
+
+![Image](https://i.imgur.com/WYFSDE8.png)
+
+而如果要一次新增多筆資料的話就得使用 **insertMany**，差別在於傳入的參數必需用陣列包起來。
 
 **_server.js_**
 
@@ -83,26 +166,93 @@ findData();
 const mongoose = require("mongoose");
 const User = require("./User");
 
+//如果是使用cloud的話 第一個參數就要放cloud給予的uri位置，在<password>的部分要改成自己的MongoDB密碼，才能成功連線。
+
+//本地端預設： mongodb://127.0.0.1:27017/你自己的資料庫名稱
+
+//cloud：mongodb+srv://Wei:<password>@cluster0.adryn.mongodb.net/?retryWrites=true&w=majority
+
 mongoose.connect("mongodb://127.0.0.1:27017/testdb", () => {
   console.log("connected");
 });
 
-const findData = async () => {
+const createNewData = async () => {
   try {
-    //查詢name為Wei的，查詢到以後只顯示name欄位，其他欄位不要顯示。
-    const user = await User.where("name").equals("Wei").select("name");
+    // 第一種建立資料的方法
+    // const user = new User({ name: "Wei", age: 24 });
+    // await user.save();
+
+    //----------------------------------------
+
+    //第二種建立資料的方法
+    // const user = await User.create({
+    //   name: "Wei",
+    //   age: 24,
+    //   email: "test@gmail.com",
+    // });
+
+    //一次新增多筆資料
+    const user = await User.insertMany([
+      {
+        name: "Alex",
+        age: 18,
+        email: "test1122123@gmail.com",
+      },
+      {
+        name: "Bob",
+        age: 16,
+        email: "test5577@gmail.com",
+      },
+    ]);
     console.log(user);
   } catch (error) {
     console.log(error.message);
   }
 };
 
-findData();
+createNewData();
 ```
 
-![Image](https://i.imgur.com/50c13Pz.png)
+如新增多筆資料成功的話，可以在 Terminal 看到剛剛新增的資料。
 
-如果希望查詢結果能夠去除不想要的欄位，則可以在 select 語法中加上一個減號 **-**
+![Image](https://i.imgur.com/NOqYhra.png)
+
+# 在 Schema 中進行資料驗證
+
+在定義 Schema 的時候，通常會針對某些欄位進行驗證(validate)，例如：該欄位在新增時為必需的(required)、欄位最小值應為 1(min)，最大值為 100(max)等…。
+
+而如果需針對欄位進行驗證，必需使用物件的方式來定義欄位屬性。
+
+**_User.js_**
+
+```javascript
+const mongoose = require("mongoose");
+
+//定義欄位名稱與欄位型態
+const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+  },
+  email: {
+    type: String,
+    required: true,
+    //email字串欄位最小長度應為10
+    minLength: 10,
+  },
+  age: {
+    type: Number,
+    required: true,
+    //age數字欄位最小值應為1
+    min: 1,
+  },
+});
+
+//定義Collection的名稱
+module.exports = mongoose.model("User", userSchema);
+```
+
+接著到 server.js 修改一下資料的值
 
 **_server.js_**
 
@@ -110,94 +260,41 @@ findData();
 const mongoose = require("mongoose");
 const User = require("./User");
 
+//如果是使用cloud的話 第一個參數就要放cloud給予的uri位置，在<password>的部分要改成自己的MongoDB密碼，才能成功連線。
+
+//本地端預設： mongodb://127.0.0.1:27017/你自己的資料庫名稱
+
+//cloud：mongodb+srv://Wei:<password>@cluster0.adryn.mongodb.net/?retryWrites=true&w=majority
+
 mongoose.connect("mongodb://127.0.0.1:27017/testdb", () => {
   console.log("connected");
 });
 
-const findData = async () => {
+const createNewData = async () => {
   try {
-    //查詢name為Wei的，查詢到以後不要把欄位名稱為name的顯示出來。
-    const user = await User.where("name").equals("Wei").select("-name");
+    const user = await User.create({
+      name: "Wei",
+      age: -1,
+      email: "test@gmail.com",
+    });
     console.log(user);
   } catch (error) {
     console.log(error.message);
   }
 };
 
-findData();
+createNewData();
 ```
 
-![Image](https://i.imgur.com/1YrgNi8.png)
+按下儲存後，會發現 Terminal 報出錯誤訊息，原因是因為在 age 的欄位定義了規則，規定 age 欄位最小的值只能為 1，而建立的資料為-1。
 
-# 更新資料
+![Image](https://i.imgur.com/UHUXy9w.png)
 
-要更新資料的話可以使用 **updateOne** 或 **updateMany**。
+# Schema 自訂義規則
 
-**重要**：使用這兩個 function 的時候要注意，因 updateOne 和 updateMany 的預設驗證機制是關閉的，所以使用這兩個 function 更新資料的話，並不會通過我們在 Schema 建立的驗證規則，而是會直接無視規則更新資料。
+我們也可以在 Schema 中撰寫自己的欄位規則。
 
-updateOne 的第一個參數是查詢參數，查詢你想要更新的資料後，在第二個參數中傳入你要更改的欄位名稱與欄位值，而如果要開啟驗證機制的話，必需在第三個參數中將驗證機制設置為 true。
-
-**_server.js_**
-
-```javascript
-const mongoose = require("mongoose");
-const User = require("./User");
-
-mongoose.connect("mongodb://127.0.0.1:27017/testdb", () => {
-  console.log("connected");
-});
-
-const updateData = async () => {
-  try {
-    let opts = { runValidators: true }; //將驗證機制設置為true
-    const userUpdateLog = await User.updateOne(
-      { name: "Wei" }, //第一個參數 查詢參數 查詢name為Wei的資料
-      { age: "30" }, //第二個參數 更改參數 將Wei的age改為30
-      opts //第三個可選參數 將驗證機制設置為true
-    );
-    console.log(userUpdateLog);
-  } catch (error) {
-    console.log(error.message);
-  }
-};
-updateData();
-```
-
-執行後的結果如下，可以看到更動的資料筆數(modifiedCount)為一筆。
-
-![Image](https://i.imgur.com/dET0e0h.png)
-
-可以試試看如果把第三個參數拿掉，並把 age 設定為 23，再去執行檔案會發生什麼事。
-
-# 刪除資料
-
-要刪除資料的話使用 **deleteOne** 與 **deleteMany**。
-
-直接在 deleteOne 與 deleteMany function 中傳入要刪除的資料，一樣是使用查詢語法，查詢到以後將該筆資料刪除。
-
-```javascript
-const mongoose = require("mongoose");
-const User = require("./User");
-
-mongoose.connect("mongodb://127.0.0.1:27017/testdb", () => {
-  console.log("connected");
-});
-
-const removeData = async () => {
-  try {
-    //只刪除一筆的話使用deleteOne 要一次刪除多筆的話使用 deleteMany
-    const userRemoveLog = await User.deleteOne({ name: "Alex" });
-    console.log(userRemoveLog);
-  } catch (error) {
-    console.log(error.message);
-  }
-};
-removeData();
-```
-
-# Schema Methods
-
-Schema 本身也有提供客製化的 function 供我們使用。
+在 age 欄位中，我們建立了一個新屬性叫做 validate，在 validate 裡面需傳入 validator 以及 message，validtor 為你自己定義的欄位規則，在該欄位去判斷 age 傳進來的值是否為偶數，而當 validator 為 true 的時候才能通過驗證，如果驗證失敗，則會回傳 message。
 
 **_User.js_**
 
@@ -227,83 +324,11 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-//不能用arrow func 因為會用到this
-userSchema.methods.sayHello = function () {
-  console.log(
-    `Hi My name is ${this.name}, age ${this.age}, email ${this.email}`
-  );
-};
-
 //定義Collection的名稱
 module.exports = mongoose.model("User", userSchema);
 ```
 
-接著回到 server.js 先針對資料進行查詢後，再去使用 sayHello function。
-
-```javascript
-const mongoose = require("mongoose");
-const User = require("./User");
-
-mongoose.connect("mongodb://127.0.0.1:27017/testdb", () => {
-  console.log("connected");
-});
-
-const customFunction = async () => {
-  try {
-    const user = await User.findOne({ name: "Wei" });
-    user.sayHello();
-  } catch (error) {
-    console.log(error.message);
-  }
-};
-
-customFunction();
-```
-
-![Image](https://i.imgur.com/Yjw04XS.png)
-
-# Schema Statics
-
-Statics 則是可以直接自訂 query 的規則。
-
-**_User.js_**
-
-```javascript
-const mongoose = require("mongoose");
-
-//定義欄位名稱與欄位型態
-const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-  },
-  email: {
-    type: String,
-    required: true,
-    minLength: 10,
-  },
-  age: {
-    type: Number,
-    required: true,
-    min: 1,
-    validate: {
-      // validator為true時，才能通過驗證。
-      validator: (v) => v % 2 === 0,
-      message: (props) => `${props.value} 並不是偶數`,
-    },
-  },
-});
-
-//找到age大於等於傳入進來的參數
-userSchema.statics.findByAgeGreaterThanEqual = function (age) {
-  return this.find({ age: { $gte: age } });
-};
-
-//定義Collection的名稱
-module.exports = mongoose.model("User", userSchema);
-```
-
-接著回到 server.js 直接使用 findByAgeGreaterThanEqual。
+這邊將 age 的值改為奇數並儲存。
 
 **_server.js_**
 
@@ -311,153 +336,32 @@ module.exports = mongoose.model("User", userSchema);
 const mongoose = require("mongoose");
 const User = require("./User");
 
+//如果是使用cloud的話 第一個參數就要放cloud給予的uri位置，在<password>的部分要改成自己的MongoDB密碼，才能成功連線。
+
+//本地端預設： mongodb://127.0.0.1:27017/你自己的資料庫名稱
+
+//cloud：mongodb+srv://Wei:<password>@cluster0.adryn.mongodb.net/?retryWrites=true&w=majority
+
 mongoose.connect("mongodb://127.0.0.1:27017/testdb", () => {
   console.log("connected");
 });
 
-const customFunction = async () => {
+const createNewData = async () => {
   try {
-    //找到 age 欄位 大於等於 30 的資料
-    const user = await User.findByAgeGreaterThanEqual(30);
+    const user = await User.create({
+      name: "Wei",
+      age: 23, // 23 為奇數
+      email: "test@gmail.com",
+    });
     console.log(user);
   } catch (error) {
     console.log(error.message);
   }
 };
 
-customFunction();
+createNewData();
 ```
 
-![Image](https://i.imgur.com/IGqEFxa.png)
+儲存後會發現驗證失敗，因為 23 並不是偶數。
 
-# Schema Query
-
-Query 定義的方法可以接在 find、findOne、where 之後使用，所以先前在 statics 定義的 findByAgeGreaterThanEqual function 也可以使用。
-
-**_User.js_**
-
-```javascript
-const mongoose = require("mongoose");
-
-//定義欄位名稱與欄位型態
-const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-  },
-  email: {
-    type: String,
-    required: true,
-    minLength: 10,
-  },
-  age: {
-    type: Number,
-    required: true,
-    min: 1,
-    validate: {
-      // validator為true時，才能通過驗證。
-      validator: (v) => v % 2 === 0,
-      message: (props) => `${props.value} 並不是偶數`,
-    },
-  },
-});
-
-//找到age大於等於傳入進來的參數
-userSchema.statics.findByAgeGreaterThanEqual = function (age) {
-  return this.find({ age: { $gte: age } });
-};
-
-//chain query 只能在query function後面接著用 例如find findOne where
-userSchema.query.byName = function (name) {
-  return this.where({ name: name }).select(["name", "age"]);
-};
-
-//定義Collection的名稱
-module.exports = mongoose.model("User", userSchema);
-```
-
-接著回到 server.js 在 findByAgeGreaterThanEqual 之後使用 byNameAndAge。
-
-**_server.js_**
-
-```javascript
-const mongoose = require("mongoose");
-const User = require("./User");
-
-mongoose.connect("mongodb://127.0.0.1:27017/testdb", () => {
-  console.log("connected");
-});
-
-const customFunction = async () => {
-  try {
-    const user = await User.findByAgeGreaterThanEqual(30).byName("Wei");
-    console.log(user);
-  } catch (error) {
-    console.log(error.message);
-  }
-};
-
-customFunction();
-```
-
-![Image](https://i.imgur.com/HqJ6WCx.png)
-
-# Schema Virtual
-
-最後如果要在應用程式內，傳遞查詢出來的值，可以使用 virtual 提供的 get function。
-
-**_User.js_**
-
-```javascript
-const mongoose = require("mongoose");
-
-const userSchema = new mongoose.Schema({
-  name: String,
-  email: {
-    type: String,
-    required: true,
-    minLength: 10,
-  },
-  age: {
-    type: Number,
-    min: 1,
-    validate: {
-      validator: (v) => v % 2 === 0,
-      message: (props) => `${props.value} 並不是偶數`,
-    },
-  },
-});
-
-//cross application
-userSchema.virtual("namedEmail").get(function () {
-  return `${this.name} <${this.email}>`;
-});
-
-module.exports = mongoose.model("User", userSchema);
-```
-
-直接在查詢後使用即可
-
-**_server.js_**
-
-```javascript
-const mongoose = require("mongoose");
-const User = require("./User");
-
-mongoose.connect("mongodb://127.0.0.1:27017/testdb", () => {
-  console.log("connected");
-});
-
-const customFunction = async () => {
-  try {
-    const user = await User.findOne({ name: "Wei" });
-    console.log(user.namedEmail);
-  } catch (error) {
-    console.log(error.message);
-  }
-};
-
-customFunction();
-```
-
-![Imagee](https://i.imgur.com/EaAbWOn.png)
+![Image](https://i.imgur.com/VxWsZcr.png)
