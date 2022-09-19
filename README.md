@@ -460,4 +460,4 @@ const customFunction = async () => {
 customFunction();
 ```
 
-![Image](https://i.imgur.com/EaAbWOn.png)
+![Imagee](https://i.imgur.com/EaAbWOn.png)
