@@ -85,7 +85,7 @@ nodemon ./server.js
 
 ![Image](https://i.imgur.com/r6ze9bc.png)
 
-# 建立 Collections 定義 Schema
+# 建立 Collections 定義 Schema 並新增資料到資料庫
 
 我們現在可以透過 Mongoose 來建立資料庫的 Collection，如果你有使用過其他資料庫例如 Mysql，Collection 就像是 Table，而 Table 在建立時需要定義裡面的資料欄位名稱以及資料型態(Schema Type)，Collection 也是一樣。
 
@@ -104,12 +104,206 @@ const mongoose = require("mongoose");
 const userSchema = new mongoose.Schema({
   name: String,
   email: String,
-  age: String,
+  age: Number,
 });
 
 //定義Collection的名稱
 module.exports = mongoose.model("User", userSchema);
 ```
+
+定義好 Collection 名稱和 欄位名稱後，我們直接在 server.js 檔案中引入做使用，要注意的是 mongoose 提供的新增修改刪除都必須使用 async / await 去做處理，在建立新資料的時候填入剛剛定義的欄位名稱(key)還有欄位的值(value)。
+
+**_server.js_**
+
+```javascript
+const mongoose = require("mongoose");
+const User = require("./User");
+
+//如果是使用cloud的話 第一個參數就要放cloud給予的uri位置，在<password>的部分要改成自己的MongoDB密碼，才能成功連線。
+
+//本地端預設： mongodb://127.0.0.1:27017/你自己的資料庫名稱
+
+//cloud：mongodb+srv://Wei:<password>@cluster0.adryn.mongodb.net/?retryWrites=true&w=majority
+
+mongoose.connect("mongodb://127.0.0.1:27017/testdb", () => {
+  console.log("connected");
+});
+
+const createNewData = async () => {
+  try {
+    // 第一種建立資料的方法
+    // const user = new User({ name: "Wei", age: 24 });
+    // await user.save();
+
+    //----------------------------------------
+
+    //第二種建立資料的方法
+    const user = await User.create({
+      name: "Wei",
+      age: 24,
+      email: "test@gmail.com",
+    });
+    console.log(user);
+  } catch (error) {
+    console.log(error.message);
+  }
+};
+
+createNewData();
+```
+
+將上面的程式碼貼到 server.js 後儲存，因為我們是使用 nodemon 的關係，在按下儲存的當下 nodemon 就會幫我們重啟 server，如果沒有報出任何錯誤並且有在 Terminal 看到我們新增的資料，就代表資料建立成功了。
+
+在 MongoDB Compass 中按下左邊的重新整理按鈕，就會看到我們的資料庫(testdb)和 collection 了(users)，而在 collection 裡面可以看到剛剛新增的資料。
+
+![Image](https://i.imgur.com/WYFSDE8.png)
+
+# 在 Schema 中進行資料驗證
+
+在定義 Schema 的時候，通常會針對某些欄位進行驗證(validate)，例如：該欄位在新增時為必需的(required)、欄位最小值應為 1(min)，最大值為 100(max)等…。
+
+而如果需針對欄位進行驗證，必需使用物件的方式來定義欄位屬性。
+
+**_User.js_**
+
+```javascript
+const mongoose = require("mongoose");
+
+//定義欄位名稱與欄位型態
+const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+  },
+  email: {
+    type: String,
+    required: true,
+    //email字串欄位最小長度應為10
+    minLength: 10,
+  },
+  age: {
+    type: Number,
+    required: true,
+    //age數字欄位最小值應為1
+    min: 1,
+  },
+});
+
+//定義Collection的名稱
+module.exports = mongoose.model("User", userSchema);
+```
+
+接著到我們的 server.js 修改一下要建立的資料型態
+
+**_server.js_**
+
+```javascript
+const mongoose = require("mongoose");
+const User = require("./User");
+
+//如果是使用cloud的話 第一個參數就要放cloud給予的uri位置，在<password>的部分要改成自己的MongoDB密碼，才能成功連線。
+
+//本地端預設： mongodb://127.0.0.1:27017/你自己的資料庫名稱
+
+//cloud：mongodb+srv://Wei:<password>@cluster0.adryn.mongodb.net/?retryWrites=true&w=majority
+
+mongoose.connect("mongodb://127.0.0.1:27017/testdb", () => {
+  console.log("connected");
+});
+
+const createNewData = async () => {
+  try {
+    const user = await User.create({
+      name: "Wei",
+      age: -1,
+      email: "test@gmail.com",
+    });
+    console.log(user);
+  } catch (error) {
+    console.log(error.message);
+  }
+};
+
+createNewData();
+```
+
+按下儲存後，會發現 Terminal 報出錯誤訊息，原因是因為我們在 age 的欄位定義了規則，規定 age 欄位最小的值只能為 1，而我們建立的資料為-1。
+
+![Image](https://i.imgur.com/UHUXy9w.png)
+
+# Schema 自訂義規則
+
+我們也可以在 Schema 中撰寫自己的欄位規則。
+
+在 age 欄位中，我們建立了一個新屬性叫做 validate，在 validate 裡面需傳入 validator 以及 message，validtor 為你自己定義的欄位規則，在該欄位我們去判斷 age 傳進來的值是否為偶數，而當 validator 為 true 的時候才能通過驗證，如果驗證失敗，則會回傳 message。
+
+**_User.js_**
+
+```javascript
+const mongoose = require("mongoose");
+
+//定義欄位名稱與欄位型態
+const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+  },
+  email: {
+    type: String,
+    required: true,
+    minLength: 10,
+  },
+  age: {
+    type: Number,
+    required: true,
+    min: 1,
+    validate: {
+      // validator為true時，才能通過驗證。
+      validator: (v) => v % 2 === 0,
+      message: (props) => `${props.value} 並不是偶數`,
+    },
+  },
+});
+
+//定義Collection的名稱
+module.exports = mongoose.model("User", userSchema);
+```
+
+這邊我們將 age 的值改為奇數並儲存。
+
+```javascript
+const mongoose = require("mongoose");
+const User = require("./User");
+
+//如果是使用cloud的話 第一個參數就要放cloud給予的uri位置，在<password>的部分要改成自己的MongoDB密碼，才能成功連線。
+
+//本地端預設： mongodb://127.0.0.1:27017/你自己的資料庫名稱
+
+//cloud：mongodb+srv://Wei:<password>@cluster0.adryn.mongodb.net/?retryWrites=true&w=majority
+
+mongoose.connect("mongodb://127.0.0.1:27017/testdb", () => {
+  console.log("connected");
+});
+
+const createNewData = async () => {
+  try {
+    const user = await User.create({
+      name: "Wei",
+      age: 23, // 23 為奇數
+      email: "test@gmail.com",
+    });
+    console.log(user);
+  } catch (error) {
+    console.log(error.message);
+  }
+};
+
+createNewData();
+```
+
+儲存後會發現驗證失敗，因為 23 並不是偶數。
+
+![Image](https://i.imgur.com/VxWsZcr.png)
 
 ---
 

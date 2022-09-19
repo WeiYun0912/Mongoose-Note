@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const User = require("./User2");
+const User = require("./User");
 
 //如果是使用cloud的話 第一個參數就要放cloud給予的uri位置，在<password>的部分要改成自己的MongoDB密碼，才能成功連線。
 
@@ -10,3 +10,18 @@ const User = require("./User2");
 mongoose.connect("mongodb://127.0.0.1:27017/testdb", () => {
   console.log("connected");
 });
+
+const createNewData = async () => {
+  try {
+    const user = await User.create({
+      name: "Wei",
+      age: 23,
+      email: "test@gmail.com",
+    });
+    console.log(user);
+  } catch (error) {
+    console.log(error.message);
+  }
+};
+
+createNewData();
