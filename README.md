@@ -158,6 +158,65 @@ createNewData();
 
 ![Image](https://i.imgur.com/WYFSDE8.png)
 
+而如果要一次新增多筆資料的話就得使用 **insertMany**，差別在於傳入的參數必需用陣列包起來。
+
+**_server.js_**
+
+```javascript
+const mongoose = require("mongoose");
+const User = require("./User");
+
+//如果是使用cloud的話 第一個參數就要放cloud給予的uri位置，在<password>的部分要改成自己的MongoDB密碼，才能成功連線。
+
+//本地端預設： mongodb://127.0.0.1:27017/你自己的資料庫名稱
+
+//cloud：mongodb+srv://Wei:<password>@cluster0.adryn.mongodb.net/?retryWrites=true&w=majority
+
+mongoose.connect("mongodb://127.0.0.1:27017/testdb", () => {
+  console.log("connected");
+});
+
+const createNewData = async () => {
+  try {
+    // 第一種建立資料的方法
+    // const user = new User({ name: "Wei", age: 24 });
+    // await user.save();
+
+    //----------------------------------------
+
+    //第二種建立資料的方法
+    // const user = await User.create({
+    //   name: "Wei",
+    //   age: 24,
+    //   email: "test@gmail.com",
+    // });
+
+    //一次新增多筆資料
+    const user = await User.insertMany([
+      {
+        name: "Alex",
+        age: 18,
+        email: "test1122123@gmail.com",
+      },
+      {
+        name: "Bob",
+        age: 16,
+        email: "test5577@gmail.com",
+      },
+    ]);
+    console.log(user);
+  } catch (error) {
+    console.log(error.message);
+  }
+};
+
+createNewData();
+```
+
+如新增多筆資料成功的話，可以在 Terminal 看到剛剛新增的資料。
+
+![Image](https://i.imgur.com/NOqYhra.png)
+
 # 在 Schema 中進行資料驗證
 
 在定義 Schema 的時候，通常會針對某些欄位進行驗證(validate)，例如：該欄位在新增時為必需的(required)、欄位最小值應為 1(min)，最大值為 100(max)等…。
@@ -193,7 +252,7 @@ const userSchema = new mongoose.Schema({
 module.exports = mongoose.model("User", userSchema);
 ```
 
-接著到我們的 server.js 修改一下要建立的資料型態
+接著到 server.js 修改一下資料的值
 
 **_server.js_**
 
@@ -227,7 +286,7 @@ const createNewData = async () => {
 createNewData();
 ```
 
-按下儲存後，會發現 Terminal 報出錯誤訊息，原因是因為我們在 age 的欄位定義了規則，規定 age 欄位最小的值只能為 1，而我們建立的資料為-1。
+按下儲存後，會發現 Terminal 報出錯誤訊息，原因是因為在 age 的欄位定義了規則，規定 age 欄位最小的值只能為 1，而建立的資料為-1。
 
 ![Image](https://i.imgur.com/UHUXy9w.png)
 
@@ -235,7 +294,7 @@ createNewData();
 
 我們也可以在 Schema 中撰寫自己的欄位規則。
 
-在 age 欄位中，我們建立了一個新屬性叫做 validate，在 validate 裡面需傳入 validator 以及 message，validtor 為你自己定義的欄位規則，在該欄位我們去判斷 age 傳進來的值是否為偶數，而當 validator 為 true 的時候才能通過驗證，如果驗證失敗，則會回傳 message。
+在 age 欄位中，我們建立了一個新屬性叫做 validate，在 validate 裡面需傳入 validator 以及 message，validtor 為你自己定義的欄位規則，在該欄位去判斷 age 傳進來的值是否為偶數，而當 validator 為 true 的時候才能通過驗證，如果驗證失敗，則會回傳 message。
 
 **_User.js_**
 
@@ -269,7 +328,9 @@ const userSchema = new mongoose.Schema({
 module.exports = mongoose.model("User", userSchema);
 ```
 
-這邊我們將 age 的值改為奇數並儲存。
+這邊將 age 的值改為奇數並儲存。
+
+**_server.js_**
 
 ```javascript
 const mongoose = require("mongoose");
@@ -304,6 +365,16 @@ createNewData();
 儲存後會發現驗證失敗，因為 23 並不是偶數。
 
 ![Image](https://i.imgur.com/VxWsZcr.png)
+
+# 查詢資料
+
+經由前面新增的資料，資料庫內共有 3 筆資料，現在就來針對這 3 筆資料做查詢吧。
+
+![Image](https://i.imgur.com/FbNuDDK.png)
+
+# 更新資料
+
+# 刪除資料
 
 ---
 
