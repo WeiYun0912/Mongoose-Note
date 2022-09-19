@@ -305,6 +305,3 @@ createNewData();
 
 ![Image](https://i.imgur.com/VxWsZcr.png)
 
----
-
-# 施工中 🚧
